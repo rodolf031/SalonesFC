@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horarios Facultad</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/png" sizes="192x192" href="icono.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            background-size: 0.65rem auto;
+            padding-right: 2.5rem;
+        }
+        .resultado-item { cursor: pointer; }
+    </style>
+</head>
+<body class="bg-zinc-900 min-h-screen flex items-center justify-center p-4">
+
+    <main class="bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-zinc-200 mb-6">Salones Libres FC</h1>
+
+        <div class="mb-4">
+            <label for="selectDia" class="block text-sm font-medium text-zinc-400 mb-1">Día:</label>
+            <select id="selectDia" class="w-full p-2 border border-zinc-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-zinc-700 text-white"></select>
+        </div>
+
+        <div class="mb-4">
+            <label for="selectHora" class="block text-sm font-medium text-zinc-400 mb-1">Hora:</label>
+            <select id="selectHora" class="w-full p-2 border border-zinc-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-zinc-700 text-white"></select>
+        </div>
+
+        <div class="mb-6">
+            <label for="selectEdificio" class="block text-sm font-medium text-zinc-400 mb-1">Edificio:</label>
+            <select id="selectEdificio" class="w-full p-2 border border-zinc-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-zinc-700 text-white">
+                <option value="Todos">Todos</option>
+            </select>
+        </div>
+
+        <div class="space-y-3 mb-6">
+            <button id="botonBuscar" class="w-full bg-orange-700 hover:bg-orange-800 text-white font-bold py-3 px-4 rounded-md transition duration-150 ease-in-out shadow-lg">
+                Buscar Salones
+            </button>
+            <button id="botonLimpiar" class="w-full bg-zinc-600 hover:bg-zinc-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 ease-in-out">
+                Limpiar Resultados
+            </button>
+        </div>
+
+        <div id="resultados" class="mt-4 p-4 bg-zinc-900 rounded-md border border-zinc-700 min-h-[120px]">
+            <p class="text-zinc-500 text-center">Selecciona los criterios y presiona buscar.</p>
+        </div>
+    </main>
+
+    <script>
+        const selectDia = document.getElementById('selectDia');
+        const selectHora = document.getElementById('selectHora');
+        const selectEdificio = document.getElementById('selectEdificio');
+        const botonBuscar = document.getElementById('botonBuscar');
+        const botonLimpiar = document.getElementById('botonLimpiar');
+        const resultadosDiv = document.getElementById('resultados');
+        const textoInicialResultados = '<p class="text-zinc-500 text-center">Selecciona los criterios y presiona buscar.</p>';
+
+        let salonesActivos = [];
+
+        async function inicializarApp() {
+            try {
+                const respuesta = await fetch('horarios.json');
+                if (!respuesta.ok) throw new Error(`Error de red! Estado: ${respuesta.status}`);
+                const datosSalones = await respuesta.json();
+
+                salonesActivos = datosSalones.filter(salon => {
+                    if (!salon.horario_ocupado) return false;
+                    return Object.values(salon.horario_ocupado).reduce((total, dia) => total + dia.length, 0) > 0;
+                });
+
+                configurarSelectores();
+                configurarBotones(salonesActivos);
+
+            } catch (error) {
+                console.error("Error al cargar o procesar los datos de los salones:", error);
+                resultadosDiv.innerHTML = `<p class="text-center text-red-500"><strong>Error:</strong> No se pudo cargar 'horarios.json'.</p>`;
+            }
+        }
+
+        function configurarSelectores() {
+            const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            const horas = ["07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00", "17:00-18:00", "18:00-19:00", "19:00-20:00", "20:00-21:00", "21:00-22:00"];
+            
+            const edificios = [
+                "Edificio Oriente",
+                "Edificio Poniente",
+                "Tlahuizcalpan",
+                "Yelizcalli",
+                "Edificio A de Biología",
+                "Edificio B de Biología"
+            ];
+
+            dias.forEach(dia => selectDia.innerHTML += `<option value="${dia}">${dia}</option>`);
+            horas.forEach(hora => selectHora.innerHTML += `<option value="${hora}">${hora}</option>`);
+            edificios.forEach(edificio => selectEdificio.innerHTML += `<option value="${edificio}">${edificio}</option>`);
+        }
+
+        function estaOcupado(horaBuscada, listaHorariosOcupados) {
+            const horaInicioBuscada = parseFloat(horaBuscada.split('-')[0].replace(':', '.'));
+            for (const bloqueOcupado of listaHorariosOcupados) {
+                const [inicioOcupadoStr, finOcupadoStr] = bloqueOcupado.split('-');
+                const inicioOcupado = parseFloat(inicioOcupadoStr.replace(':', '.'));
+                const finOcupado = parseFloat(finOcupadoStr.replace(':', '.'));
+                if (horaInicioBuscada >= inicioOcupado && horaInicioBuscada < finOcupado) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function configurarBotones(datos) {
+            botonBuscar.addEventListener('click', () => {
+                const diaSeleccionado = selectDia.value;
+                const horaSeleccionada = selectHora.value;
+                const edificioSeleccionado = selectEdificio.value;
+                resultadosDiv.innerHTML = '<p class="text-center text-orange-500">Buscando...</p>';
+                const salonesLibres = datos.filter(salon => {
+                    const coincideEdificio = (edificioSeleccionado === "Todos") || (salon.edificio === edificioSeleccionado);
+                    if (!coincideEdificio) return false;
+                    const horariosOcupadosDelDia = salon.horario_ocupado[diaSeleccionado] || [];
+                    return !estaOcupado(horaSeleccionada, horariosOcupadosDelDia);
+                });
+                mostrarResultados(salonesLibres, diaSeleccionado);
+            });
+
+            botonLimpiar.addEventListener('click', () => {
+                resultadosDiv.innerHTML = textoInicialResultados;
+            });
+        }
+
+        function mostrarResultados(salones, dia) {
+            if (salones.length === 0) {
+                resultadosDiv.innerHTML = '<p class="text-center text-red-500 font-semibold">No se encontraron salones libres.</p>';
+            } else {
+                salones.sort((a, b) => a.salon.localeCompare(b.salon, undefined, { numeric: true, sensitivity: 'base' }));
+                let htmlResultados = `<h3 class="text-lg font-semibold mb-2 text-center text-zinc-300">Salones Libres (${salones.length}):</h3>
+                                      <p class="text-xs text-center text-zinc-500 mb-2">(Haz clic en un salón para ver su horario)</p>
+                                      <ul class="space-y-2 text-zinc-900 overflow-y-auto max-h-64 pr-2">`;
+                salones.forEach(salon => {
+                    htmlResultados += `<li class="resultado-item p-2 bg-orange-200 border-l-4 border-orange-500 rounded-r-md text-orange-900" data-salon-id="${salon.id}">
+                                           <strong>${salon.salon}</strong> <span class="text-sm text-orange-800">(${salon.edificio})</span>
+                                       </li>`;
+                });
+                htmlResultados += '</ul>';
+                resultadosDiv.innerHTML = htmlResultados;
+
+                document.querySelectorAll('.resultado-item').forEach(item => {
+                    item.addEventListener('click', (evento) => {
+                        const salonId = parseInt(evento.currentTarget.dataset.salonId);
+                        const salonInfo = salonesActivos.find(s => s.id === salonId);
+                        const horariosOcupados = salonInfo.horario_ocupado[dia] || [];
+                        horariosOcupados.sort();
+
+                        const mensaje = `Horario OCUPADO del salón ${salonInfo.salon} para el día ${dia}:\n\n` +
+                                        (horariosOcupados.length > 0 ? horariosOcupados.join('\n') : 'Ninguna clase registrada.');
+                        
+                        alert(mensaje);
+                    });
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializarApp);
+    </script>
+</body>
+</html>
