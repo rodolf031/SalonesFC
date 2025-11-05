@@ -42,7 +42,7 @@
 
         <div class="mb-6">
             <label for="selectEdificio" class="block text-sm font-medium text-zinc-400 mb-1">Edificio:</label>
-            <select id="selectEdificio" class="w-full p-2 border border-zinc-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-zinc-700 text-white">
+            <select id="selectEdificio" class="w-full p-2 border border-zinc-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-zinc-700 text-white" multiple>
                 <option value="Todos">Todos</option>
             </select>
         </div>
@@ -127,10 +127,16 @@
             botonBuscar.addEventListener('click', () => {
                 const diaSeleccionado = selectDia.value;
                 const horaSeleccionada = selectHora.value;
-                const edificioSeleccionado = selectEdificio.value;
+                const edificiosSeleccionados = Array.from(selectEdificio.selectedOptions).map(option => option.value);
+
+                if (edificiosSeleccionados.length === 0) {
+                    resultadosDiv.innerHTML = '<p class="text-center text-red-500 font-semibold">Por favor, selecciona al menos un edificio.</p>';
+                    return;
+                }
+
                 resultadosDiv.innerHTML = '<p class="text-center text-orange-500">Buscando...</p>';
                 const salonesLibres = datos.filter(salon => {
-                    const coincideEdificio = (edificioSeleccionado === "Todos") || (salon.edificio === edificioSeleccionado);
+                    const coincideEdificio = edificiosSeleccionados.includes("Todos") || edificiosSeleccionados.includes(salon.edificio);
                     if (!coincideEdificio) return false;
                     const horariosOcupadosDelDia = salon.horario_ocupado[diaSeleccionado] || [];
                     return !estaOcupado(horaSeleccionada, horariosOcupadosDelDia);
