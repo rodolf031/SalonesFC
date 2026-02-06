@@ -130,10 +130,10 @@ function buscarSalones() {
     });
 
     if (resultados.length === 0) {
-        titulo.textContent = "No hay aulas disponibles";
+        titulo.textContent = "No hay salones disponibles";
         badge.classList.add('hidden'); hint.classList.add('hidden');
     } else {
-        titulo.textContent = "Aulas Disponibles";
+        titulo.textContent = "Salones Disponibles";
         badge.textContent = resultados.length;
         badge.classList.remove('hidden'); hint.classList.remove('hidden');
 
