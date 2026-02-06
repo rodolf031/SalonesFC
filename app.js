@@ -1,22 +1,16 @@
 let datosCompletos = [];
 let edificiosSeleccionados = [];
 
-// 1. Lista FIJA de edificios permitidos
+// Lista de edificios permitidos
 const edificiosPermitidos = [
-    "Edificio Poniente", 
-    "Edificio Oriente", 
-    "Edificio Tlahuizcalpan", 
-    "Yelizcalli", 
-    "Edificio A de Biología", 
-    "Edificio B de Biología"
+    "Edificio Poniente", "Edificio Oriente", "Edificio Tlahuizcalpan", 
+    "Yelizcalli", "Edificio A de Biología", "Edificio B de Biología"
 ];
 
-// 2. Rangos de hora EXACTOS como vienen en el JSON
-const rangosHorarios = [
-    "07:00-08:00", "08:00-09:00", "09:00-10:00", "10:00-11:00", 
-    "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", 
-    "15:00-16:00", "16:00-17:00", "17:00-18:00", "18:00-19:00", 
-    "19:00-20:00", "20:00-21:00"
+// Opciones para selectores (solo horas en punto para facilitar selección)
+const horasSelector = [
+    "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", 
+    "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,8 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('btn-buscar').addEventListener('click', buscarSalones);
     document.getElementById('btn-limpiar').addEventListener('click', limpiarTodo);
-    document.querySelector('.close-modal').addEventListener('click', cerrarModal);
-    window.onclick = (event) => { if (event.target == document.getElementById('modal-horario')) cerrarModal(); }
+    document.querySelector('.close-modal').addEventListener('click', () => {
+        document.getElementById('modal-horario').classList.add('hidden');
+    });
 });
 
 async function cargarDatos() {
@@ -40,15 +35,40 @@ async function cargarDatos() {
     }
 }
 
-// Genera los chips solo para la lista permitida
+// --- FUNCIONES DE UTILIDAD (LA LÓGICA QUE PEDISTE) ---
+
+// Convierte "08:30" a minutos totales (510) para comparar fácil
+function tiempoAMinutos(horaStr) {
+    const [horas, minutos] = horaStr.split(':').map(Number);
+    return (horas * 60) + minutos;
+}
+
+// Verifica si dos rangos se solapan (chocan)
+// Rango 1: Lo que busca el usuario (ej 09:00-10:00)
+// Rango 2: Lo que viene en el JSON (ej 08:30-10:00)
+function haySolapamiento(inicioUsuario, finUsuario, rangoJson) {
+    const [inicioStr, finStr] = rangoJson.split('-');
+    
+    // Convertir todo a minutos
+    const jsonInicio = tiempoAMinutos(inicioStr);
+    const jsonFin = tiempoAMinutos(finStr);
+    const userInicio = tiempoAMinutos(inicioUsuario);
+    const userFin = tiempoAMinutos(finUsuario);
+
+    // Lógica de choque: Si el inicio del usuario es menor al fin del json
+    // Y el fin del usuario es mayor al inicio del json, hay choque.
+    return (userInicio < jsonFin && userFin > jsonInicio);
+}
+
+// --- INTERFAZ ---
+
 function generarChipsEdificios() {
     const contenedor = document.getElementById('container-edificios');
     edificiosPermitidos.forEach(nombre => {
         const chip = document.createElement('div');
         chip.classList.add('chip');
-        // Quitamos "Edificio" para que el botón sea más corto
         chip.textContent = nombre.replace('Edificio ', '');
-        chip.dataset.valor = nombre; // Guardamos el nombre completo
+        chip.dataset.valor = nombre;
         
         chip.addEventListener('click', () => {
             chip.classList.toggle('selected');
@@ -63,44 +83,22 @@ function generarChipsEdificios() {
     });
 }
 
-// Llena los selectores con los rangos exactos "HH:00-HH:00"
 function inicializarSelectoresHora() {
     const selInicio = document.getElementById('select-inicio');
     const selFin = document.getElementById('select-fin');
     
-    // Llenar selectInicio (todos los rangos)
-    rangosHorarios.forEach((rango, index) => {
-        // Mostramos solo la hora de inicio en el texto para que se vea limpio
-        const texto = rango.split('-')[0]; 
-        selInicio.add(new Option(texto, rango));
-        // Selección por defecto: 07:00-08:00
-        if (index === 0) selInicio.value = rango;
-    });
-
-    // Actualizar selectFin basado en la selección de Inicio
-    selInicio.addEventListener('change', () => {
-        const rangoInicioSeleccionado = selInicio.value;
-        const indiceInicio = rangosHorarios.indexOf(rangoInicioSeleccionado);
-        selFin.innerHTML = ''; // Limpiar
-        
-        // Llenar selectFin solo con rangos POSTERIORES al de inicio
-        for (let i = indiceInicio; i < rangosHorarios.length; i++) {
-             // Mostramos la hora de FIN en el texto
-            const texto = rangosHorarios[i].split('-')[1];
-            selFin.add(new Option(texto, rangosHorarios[i]));
-        }
-        // Seleccionar por defecto el mismo rango final que el inicial (bloque de 1 hora)
-        selFin.selectedIndex = 0;
-    });
+    horasSelector.forEach(h => selInicio.add(new Option(h, h)));
+    horasSelector.forEach(h => selFin.add(new Option(h, h)));
     
-    // Disparar evento inicial
-    selInicio.dispatchEvent(new Event('change'));
+    // Defaults
+    selInicio.value = "07:00";
+    selFin.value = "08:00";
 }
 
 function buscarSalones() {
     const dia = document.getElementById('select-dia').value;
-    const rangoInicio = document.getElementById('select-inicio').value;
-    const rangoFin = document.getElementById('select-fin').value;
+    const inicioBusqueda = document.getElementById('select-inicio').value;
+    const finBusqueda = document.getElementById('select-fin').value;
     
     const titulo = document.getElementById('titulo-resultados');
     const lista = document.getElementById('lista-resultados');
@@ -109,29 +107,28 @@ function buscarSalones() {
     
     lista.innerHTML = '';
 
-    if (edificiosSeleccionados.length === 0) return alert("Selecciona al menos un edificio.");
-    if (!dia) return alert("Selecciona un día.");
-    
-    // Determinar los rangos exactos que necesitamos verificar
-    const idxInicio = rangosHorarios.indexOf(rangoInicio);
-    const idxFin = rangosHorarios.indexOf(rangoFin);
-    // Obtenemos el sub-array con todos los rangos intermedios
-    const rangosNecesarios = rangosHorarios.slice(idxInicio, idxFin + 1);
+    // Validaciones
+    if (edificiosSeleccionados.length === 0) return alert("Selecciona edificio.");
+    if (!dia) return alert("Selecciona día.");
+    if (tiempoAMinutos(inicioBusqueda) >= tiempoAMinutos(finBusqueda)) return alert("La hora final debe ser mayor a la inicial.");
 
-    // FILTRADO
+    // FILTRADO REAL
     const resultados = datosCompletos.filter(salon => {
-        // 1. Filtro Edificio
+        // 1. Check Edificio
         if (!edificiosSeleccionados.includes(salon.edificio)) return false;
 
-        // 2. Filtro Disponibilidad
-        const ocupacionDia = salon.horario_ocupado[dia] || [];
-        // Verificamos si ALGUNO de los rangos necesarios está en la lista de ocupados
-        const tieneClase = rangosNecesarios.some(rango => ocupacionDia.includes(rango));
+        // 2. Check Disponibilidad con solapamiento
+        const horariosOcupadosHoy = salon.horario_ocupado[dia] || [];
         
-        return !tieneClase; // Pasa si NO tiene clase
+        // Revisamos cada bloque ocupado en el JSON para este salón
+        // Si ALGUNO choca con lo que pide el usuario, el salón ESTÁ OCUPADO.
+        const estaOcupado = horariosOcupadosHoy.some(bloqueJson => {
+            return haySolapamiento(inicioBusqueda, finBusqueda, bloqueJson);
+        });
+        
+        return !estaOcupado; // Devolvemos true si NO está ocupado
     });
 
-    // Renderizar
     if (resultados.length === 0) {
         titulo.textContent = "No hay aulas disponibles 😔";
         badge.classList.add('hidden'); hint.classList.add('hidden');
@@ -151,7 +148,7 @@ function buscarSalones() {
     }
 }
 
-// --- LÓGICA DEL MODAL ---
+// --- TABLA DETALLADA ---
 function mostrarHorarioCompleto(salon) {
     const modal = document.getElementById('modal-horario');
     document.getElementById('modal-titulo').textContent = salon.salon;
@@ -160,52 +157,55 @@ function mostrarHorarioCompleto(salon) {
     const tbody = document.querySelector('#tabla-horario tbody');
     tbody.innerHTML = '';
 
-    const diasAbrev = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+    const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
-    // Iteramos sobre la lista de rangos exactos
-    rangosHorarios.forEach(rangoExacto => {
+    // Generamos filas de hora en hora para visualizar la tabla
+    for (let h = 7; h < 21; h++) {
+        const horaCeldaInicio = `${h.toString().padStart(2,'0')}:00`;
+        const horaCeldaFin = `${(h+1).toString().padStart(2,'0')}:00`;
+        
         const tr = document.createElement('tr');
         
-        // Celda de Hora (Mostramos solo el inicio para ahorrar espacio, ej "07:00")
+        // Columna Hora
         const tdHora = document.createElement('td');
-        tdHora.textContent = rangoExacto.split('-')[0];
+        tdHora.textContent = horaCeldaInicio;
         tdHora.style.fontWeight = 'bold'; tdHora.style.color = 'var(--primary)';
         tr.appendChild(tdHora);
 
-        // Celdas de Días
-        diasAbrev.forEach(dia => {
+        // Columnas Días
+        diasSemana.forEach(dia => {
             const td = document.createElement('td');
-            // Comparación EXACTA: ¿El rango actual está en la lista de ese día?
-            const ocupado = salon.horario_ocupado[dia] && salon.horario_ocupado[dia].includes(rangoExacto);
+            const ocupadoList = salon.horario_ocupado[dia] || [];
             
+            // Usamos la misma lógica de solapamiento para pintar la celda
+            // Si la celda (ej 09:00-10:00) choca con algo del JSON (ej 08:30-10:00), se pinta roja
+            const ocupado = ocupadoList.some(bloqueJson => 
+                haySolapamiento(horaCeldaInicio, horaCeldaFin, bloqueJson)
+            );
+
             if (ocupado) {
-                td.textContent = "█"; // Carácter visual para ocupado
+                td.textContent = "█"; 
                 td.classList.add('celda-ocupada');
             } else {
-                td.textContent = "·"; // Carácter sutil para libre
+                td.textContent = "·"; 
                 td.classList.add('celda-libre');
             }
             tr.appendChild(td);
         });
         tbody.appendChild(tr);
-    });
+    }
+
     modal.classList.remove('hidden');
 }
-
-function cerrarModal() { document.getElementById('modal-horario').classList.add('hidden'); }
 
 function limpiarTodo() {
     edificiosSeleccionados = [];
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
     document.getElementById('select-dia').value = "";
-    // Reiniciar selectores de hora al primer valor
-    const sInicio = document.getElementById('select-inicio');
-    sInicio.selectedIndex = 0;
-    sInicio.dispatchEvent(new Event('change'));
-    
+    document.getElementById('select-inicio').value = "07:00";
+    document.getElementById('select-fin').value = "08:00";
     document.getElementById('lista-resultados').innerHTML = '';
     document.getElementById('contador-resultados').classList.add('hidden');
     document.getElementById('hint-click').classList.add('hidden');
     document.getElementById('titulo-resultados').textContent = "Configura tu búsqueda";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }

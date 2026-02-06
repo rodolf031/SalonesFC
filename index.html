@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Buscador de Espacios FC</title>
-    <link rel="icon" type="image/png" href="image_a25b42.png">
+    <link rel="icon" type="image/png" href="icono.png">
     
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -43,14 +43,12 @@
 
                     <div class="range-wrapper">
                         <div class="control-item">
-                            <label>Desde (Inicio del bloque):</label>
-                            <select id="select-inicio" class="dark-select">
-                                </select>
+                            <label>Hora Inicio:</label>
+                            <select id="select-inicio" class="dark-select"></select>
                         </div>
                         <div class="control-item">
-                            <label>Hasta (Fin del bloque):</label>
-                            <select id="select-fin" class="dark-select">
-                                </select>
+                            <label>Hora Fin:</label>
+                            <select id="select-fin" class="dark-select"></select>
                         </div>
                     </div>
                 </div>
@@ -67,7 +65,7 @@
                 <h2 id="titulo-resultados">Configura tu búsqueda</h2>
                 <span id="contador-resultados" class="badge hidden">0</span>
             </div>
-            <p class="hint-text hidden" id="hint-click">Toca una tarjeta para ver el horario completo</p>
+            <p class="hint-text hidden" id="hint-click">👆 Toca una tarjeta para ver el horario completo</p>
             <div id="lista-resultados" class="cards-list"></div>
         </main>
     </div>
@@ -87,6 +85,7 @@
                             <th>M</th>
                             <th>J</th>
                             <th>V</th>
+                            <th>S</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
